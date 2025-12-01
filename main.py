@@ -1,38 +1,28 @@
-# Advent of Code 2025 - Day 1 Solution
-# Reads from input.txt and writes result to output.txt
+def solve():
+    with open("input.txt", "r") as f:
+        lines = [line.strip() for line in f if line.strip()]
 
-def count_zero_hits(rotations, start=50):
-    pos = start % 100
-    zero_count = 0
+    dial = 50
+    count_zero = 0
 
-    for line in rotations:
-        line = line.strip()
-        if not line:
-            continue
-
+    for line in lines:
         direction = line[0]
         steps = int(line[1:])
 
-        if direction == 'L':
-            pos = (pos - steps) % 100
-        else:  # direction == 'R'
-            pos = (pos + steps) % 100
+        # Each single click
+        for _ in range(steps):
+            if direction == 'L':
+                dial = (dial - 1) % 100
+            else:
+                dial = (dial + 1) % 100
 
-        if pos == 0:
-            zero_count += 1
+            if dial == 0:
+                count_zero += 1
 
-    return zero_count
+    # Save result to output.txt
+    with open("output.txt", "w") as f:
+        f.write(str(count_zero))
 
 
-# --- Read input file ---
-with open("input.txt", "r") as f:
-    lines = f.readlines()
-
-# --- Compute answer ---
-answer = count_zero_hits(lines)
-
-# --- Write output file ---
-with open("output.txt", "w") as f:
-    f.write(str(answer))
-
-print("Password saved to output.txt:", answer)
+if __name__ == "__main__":
+    solve()
