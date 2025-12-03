@@ -1,42 +1,43 @@
-def max_joltage(line):
-    """Return the maximum two-digit number formed by two positions i < j in line."""
-    max_val = -1
+def max_12_digit_joltage(line):
+    """Return the maximum 12-digit number formed by selecting 12 positions i1 < i2 < ... < i12."""
     n = len(line)
-    for i in range(n):
-        a = int(line[i])
-        for j in range(i + 1, n):
-            b = int(line[j])
-            val = 10 * a + b
-            if val > max_val:
-                max_val = val
-    return max_val
+    k = 12  # number of digits we need to keep
+    to_remove = n - k
+
+    stack = []
+    for digit in line:
+        while to_remove > 0 and stack and stack[-1] < digit:
+            stack.pop()
+            to_remove -= 1
+        stack.append(digit)
+
+    # If we still have digits to remove, remove from the end
+    if to_remove > 0:
+        stack = stack[:-to_remove]
+
+    # Take exactly k digits (should be exactly 12)
+    result = ''.join(stack[:k])
+    return int(result)
 
 
-def solve():
+def solve_part2():
     total = 0
-    lines = []
-
-    # Parse the input - it appears to be one continuous block
-    input_text = """4346343235149456543445233353534244533333333343433259333326337334334333438332533343452433223352443324
-    2323233732423333335633333322134234324554233323746324333322454233432477323332532436412434167322334333
-    ... [rest of input truncated for display]"""
-
-    # Actually, let me read from the actual input file
+    # Read input
     with open("day3_input.txt", "r") as f:
         lines = [line.strip() for line in f if line.strip()]
 
     results = []
     for line in lines:
-        val = max_joltage(line)
+        val = max_12_digit_joltage(line)
         results.append(val)
         total += val
 
-    with open("day3_output.txt.txt", "w") as out:
+    with open("day3_OUTPUT.txt", "w") as out:
         out.write(str(total))
 
-    print(f"Total output joltage: {total}")
+    print(f"Total output joltage (Part 2): {total}")
     return total
 
 
 if __name__ == "__main__":
-    solve()
+    solve_part2()
