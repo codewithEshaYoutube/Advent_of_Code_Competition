@@ -1,72 +1,90 @@
-def parse_worksheet_part2(data):
+def parse_worksheet(data):
+    """
+    Parse the worksheet data and return the grand total of all problems.
+    """
     rows = data.strip().split('\n')
     max_len = max(len(r) for r in rows)
+
+    # Pad all rows to the same length
     rows = [r.ljust(max_len) for r in rows]
     n_rows = len(rows)
-    n_num_rows = n_rows - 1
+    n_num_rows = n_rows - 1  # Last row is operators
 
-    # First, find all column indices that are all spaces -> separators
-    separator_cols = []
+    problems = []  # Will store lists of column characters for each problem
+    current_problem_cols = []
+
+    # Scan column by column
     for col in range(max_len):
-        if all(rows[r][col] == ' ' for r in range(n_rows)):
-            separator_cols.append(col)
+        column_chars = [rows[r][col] for r in range(n_rows)]
 
-    # Add boundaries
-    separator_cols = [-1] + separator_cols + [max_len]
+        # Check if this is a separator column (all spaces)
+        if all(ch == ' ' for ch in column_chars):
+            if current_problem_cols:
+                problems.append(current_problem_cols)
+                current_problem_cols = []
+        else:
+            current_problem_cols.append(column_chars)
 
-    problems = []
-    for i in range(len(separator_cols) - 1):
-        start = separator_cols[i] + 1
-        end = separator_cols[i + 1]
-        if end > start:  # Non-empty problem
-            # Extract this problem's subgrid
-            prob_rows = [rows[r][start:end] for r in range(n_rows)]
-            problems.append(prob_rows)
+    # Don't forget the last problem if there is one
+    if current_problem_cols:
+        problems.append(current_problem_cols)
 
+    # Calculate results for each problem
     results = []
-    for prob_rows in problems:
-        width = len(prob_rows[0])
-        height = n_num_rows
+    for prob_cols in problems:
+        # Extract numbers from each number row
+        num_vals = []
+        for r in range(n_num_rows):
+            # Join all characters in this row across the problem's columns
+            num_str = ''.join(prob_cols[c][r] for c in range(len(prob_cols)))
+            num_str = num_str.strip()
+            if num_str:
+                num_vals.append(int(num_str))
 
-        # Find numbers: consecutive non-space vertical columns
-        numbers = []
-        c = 0
-        while c < width:
-            # Skip empty vertical columns (between numbers within problem)
-            if all(prob_rows[r][c] == ' ' for r in range(height)):
-                c += 1
-                continue
+        # Extract operator from the last row
+        op_row = ''.join(prob_cols[c][n_num_rows] for c in range(len(prob_cols)))
+        op_char = op_row.strip()[0]  # Get the first non-space character
 
-            # Start of a number
-            num_digits = []
-            while c < width and not all(prob_rows[r][c] == ' ' for r in range(height)):
-                # Get digit column
-                col_digits = [prob_rows[r][c] for r in range(height)]
-                # Remove trailing spaces (from bottom), but keep order top to bottom
-                while col_digits and col_digits[-1] == ' ':
-                    col_digits.pop()
-                num_digits.append(''.join(col_digits).strip())
-                c += 1
+        # Calculate based on operator
+        if op_char == '*':
+            result = 1
+            for n in num_vals:
+                result *= n
+        else:  # '+'
+            result = sum(num_vals)
 
-            # Now num_digits has digit strings for each column
-            # But wait: each column should be a single digit actually
-            # Actually, in example: number 431 comes from columns: '4', '3', '1' vertically
-            # So join them -> '431'
-            number_str = ''
-            for digit_col in num_digits:
-                # digit_col might be like '4  ' (with spaces below), we took first char
-                # Actually we should take the non-space chars top to bottom
-                # But simpler: each digit_col string has digits possibly with spaces between?
-                # Let's reconstruct properly:
-                pass
-            # Let me rethink: each digit is in one column top to bottom
-            # So for number 431: column1: '4', column2: '3', column3: '1' (vertical)
-            # We need to read top row first for most significant digit.
+        results.append(result)
 
-            # Actually, the digits are stacked vertically in one column per digit.
-            # So for number with k digits, we need k columns.
-            # In each column, the digits from top to bottom form... wait, each column has ONE digit at some row?
-            # Actually no: In example, number 623: probably columns: first column has '6' at top row, spaces below?
-            # This is confusing.
+    grand_total = sum(results)
+    return grand_total, results
 
-            # Let me check the given example transformation more carefully.
+
+def main():
+    # Read input from file
+    try:
+        with open('day6_input.txt', 'r') as f:
+            data = f.read()
+    except FileNotFoundError:
+        print("Error: day6_input.txt not found!")
+        return
+
+    # Parse worksheet and get results
+    grand_total, individual_results = parse_worksheet(data)
+
+    # Display results
+    print(f"Number of problems solved: {len(individual_results)}")
+    print(f"Grand total: {grand_total}")
+
+    # Save output to file
+    with open('day6_output.txt', 'w') as f:
+        f.write(f"Grand total: {grand_total}\n")
+        f.write(f"Number of problems: {len(individual_results)}\n")
+        f.write("\nIndividual problem results:\n")
+        for i, result in enumerate(individual_results, 1):
+            f.write(f"Problem {i}: {result}\n")
+
+    print("Results saved to day6_output.txt")
+
+
+if __name__ == "__main__":
+    main()
