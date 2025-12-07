@@ -9,34 +9,41 @@ def count_timelines(grid):
             start_col = j
             break
 
-    if start_col is None:
-        return 0
+    # Memoization: (row, col) -> number of paths from here to bottom
+    memo = {}
 
-    # Track possible positions at current row (quantum superposition)
-    # Using a set since order doesn't matter
-    possible_positions = {start_col}
+    def dfs(row, col):
+        # Check memo
+        if (row, col) in memo:
+            return memo[(row, col)]
 
-    for i in range(1, rows):  # Start from row below S
-        new_positions = set()
+        # If at bottom row, we have one complete path
+        if row == rows - 1:
+            return 1
 
-        # For each possible position in previous row
-        for col in possible_positions:
-            cell = grid[i][col]
+        # Check current cell
+        cell = grid[row][col]
 
-            if cell == '^':
-                # Quantum split: particle goes to BOTH left and right
-                if col > 0:
-                    new_positions.add(col - 1)
-                if col < cols - 1:
-                    new_positions.add(col + 1)
-            else:
-                # Particle continues straight down
-                new_positions.add(col)
+        total_paths = 0
 
-        possible_positions = new_positions
+        if cell == '^':
+            # At splitter: can go left OR right to adjacent cells in SAME row
+            # Then continue downward from there
+            if col > 0:
+                # Go left
+                total_paths += dfs(row, col - 1)
+            if col < cols - 1:
+                # Go right
+                total_paths += dfs(row, col + 1)
+        else:
+            # Not at splitter: continue straight down
+            total_paths += dfs(row + 1, col)
 
-    # Number of timelines = number of distinct end positions
-    return len(possible_positions)
+        memo[(row, col)] = total_paths
+        return total_paths
+
+    result = dfs(0, start_col)
+    return result
 
 
 # Read input from file
