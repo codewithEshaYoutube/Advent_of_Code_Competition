@@ -1,1 +1,2 @@
-1000
+Part 2 Answer:  79560
+Part 2 Answer: 31182420
