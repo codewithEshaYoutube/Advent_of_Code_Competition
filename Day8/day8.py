@@ -1,99 +1,112 @@
-import math
-import numpy as np
-import networkx as nx
-from itertools import combinations
+def day08():
+    part = [0, 0]
 
+    # Read input from the file
+    with open('day8_input.txt', 'r') as f:
+        lines = [line.strip() for line in f if line.strip()]
 
-def solve():
-    # Read input from file
-    with open("day8_input.txt", "r") as f:
-        lines = f.readlines()
-
-    # Parse coordinates
-    input_data = []
+    # Parse boxes
+    boxes = []
     for line in lines:
-        line = line.strip()
-        if line:
-            x, y, z = map(int, line.split(','))
-            input_data.append([x, y, z])
+        parts = line.split(',')
+        boxes.append([int(parts[0]), int(parts[1]), int(parts[2])])
 
-    input_data = np.array(input_data)
-    n = len(input_data)
+    nboxes = len(boxes)
+    print(f"Number of boxes: {nboxes}")
 
-    # Part 1 ----
+    # Calculate all pairwise squared distances
     print("Calculating distances...")
+    distances = []
+    for b1 in range(nboxes - 1):
+        for b2 in range(b1 + 1, nboxes):
+            dist = 0
+            for i in range(3):
+                dist += (boxes[b1][i] - boxes[b2][i]) ** 2
+            distances.append(((b1 + 1, b2 + 1), dist))  # Julia uses 1-based indexing
 
-    # Calculate all pairwise distances
-    distances = np.zeros((n, n))
-    for i in range(n):
-        for j in range(i + 1, n):
-            dist = math.sqrt(((input_data[i] - input_data[j]) ** 2).sum())
-            distances[i, j] = dist
-            distances[j, i] = dist
+    # Sort by distance
+    print("Sorting distances...")
+    workpairs = sorted(distances, key=lambda x: x[1])
 
-    # Set diagonal to infinity
-    np.fill_diagonal(distances, np.inf)
+    # Convert to list for easier popping (like Julia's popfirst!)
+    workpairs_list = list(workpairs)
 
-    # Get all pairs (upper triangle)
-    pairs = []
-    dist_list = []
-    for i in range(n):
-        for j in range(i + 1, n):
-            pairs.append((i, j))
-            dist_list.append(distances[i, j])
+    used = set()
+    circuits = []  # List of sets
 
-    # Sort pairs by distance
-    sorted_indices = np.argsort(dist_list)
-    ordered_pairs = [pairs[i] for i in sorted_indices]
+    print("Processing connections...")
+    connection_count = 0
 
-    # Take first 1000 edges
-    edges = ordered_pairs[:1000]
+    while workpairs_list:
+        connection_count += 1
+        (a, b), dist = workpairs_list.pop(0)  # popfirst!
 
-    # Create graph
-    G = nx.Graph()
-    G.add_nodes_from(range(n))
-    G.add_edges_from(edges)
+        # Convert to 0-based for Python
+        a -= 1
+        b -= 1
 
-    # Get connected components
-    comp = list(nx.connected_components(G))
-    comp_sizes = [len(c) for c in comp]
-    comp_sizes.sort(reverse=True)
+        if a in used and b in used:
+            # Find circuits containing a and b
+            ca_idx = -1
+            cb_idx = -1
+            for i, circuit in enumerate(circuits):
+                if a in circuit:
+                    ca_idx = i
+                if b in circuit:
+                    cb_idx = i
 
-    solution1 = comp_sizes[0] * comp_sizes[1] * comp_sizes[2]
-    print(f"Part 1 Solution: {solution1}")
+            if ca_idx != cb_idx and ca_idx != -1 and cb_idx != -1:
+                # Merge circuits
+                circuits[ca_idx].update(circuits[cb_idx])
+                circuits.pop(cb_idx)
 
-    # Part 2 ----
-    print("\nStarting Part 2...")
+                # Check if done (all boxes in one circuit)
+                if len(circuits) == 1 and len(circuits[0]) == nboxes:
+                    part[1] = boxes[a][0] * boxes[b][0]
+                    print(f"Part 2: All boxes connected at connection {connection_count}")
+                    print(f"  Box {a + 1} X: {boxes[a][0]}, Box {b + 1} X: {boxes[b][0]}")
+                    print(f"  Product: {part[1]}")
+                    break
+        elif a in used:
+            # Add b to circuit containing a
+            for circuit in circuits:
+                if a in circuit:
+                    circuit.add(b)
+                    break
+        elif b in used:
+            # Add a to circuit containing b
+            for circuit in circuits:
+                if b in circuit:
+                    circuit.add(a)
+                    break
+        else:
+            # Make new circuit
+            circuits.append(set([a, b]))
 
-    i = 1001
-    edges = ordered_pairs[:i]
-    G = nx.Graph()
-    G.add_nodes_from(range(n))
-    G.add_edges_from(edges)
-    comp = list(nx.connected_components(G))
-    comp_sizes = [len(c) for c in comp]
+        used.add(a)
+        used.add(b)
 
-    while len(set(comp_sizes)) > 1:
-        i += 1
-        edges = ordered_pairs[:i]
-        G = nx.Graph()
-        G.add_nodes_from(range(n))
-        G.add_edges_from(edges)
-        comp = list(nx.connected_components(G))
-        comp_sizes = [len(c) for c in comp]
+        # Part 1: After 1000 connections
+        if connection_count == 1000:
+            # Sort circuits by size, get top 3
+            circuits_sorted = sorted(circuits, key=len, reverse=True)
+            if len(circuits_sorted) >= 3:
+                part[0] = len(circuits_sorted[0]) * len(circuits_sorted[1]) * len(circuits_sorted[2])
+            elif len(circuits_sorted) == 2:
+                part[0] = len(circuits_sorted[0]) * len(circuits_sorted[1]) * 1
+            elif len(circuits_sorted) == 1:
+                part[0] = len(circuits_sorted[0]) * 1 * 1
+            print(f"Part 1 after 1000 connections: {part[0]}")
+            print(f"  Circuit sizes: {[len(c) for c in circuits_sorted[:5]]}")
 
-    # Get the last edge that was added
-    last_edge = ordered_pairs[i - 1]
-    solution2 = input_data[last_edge[0], 0] * input_data[last_edge[1], 0]
-
-    print(f"Part 2 Solution: {solution2}")
-    print(f"Last edge: {last_edge}")
-    print(f"X coordinates: {input_data[last_edge[0], 0]}, {input_data[last_edge[1], 0]}")
-
-    return solution1, solution2
+    return part
 
 
-if __name__ == "__main__":
-    s1, s2 = solve()
-    print(f"\nPart 1 Answer: {s1}")
-    print(f"Part 2 Answer: {s2}")
+# Run it
+print("=" * 60)
+print("Running Day 8 Solution (Julia-style)")
+print("=" * 60)
+result = day08()
+print(f"\n✅ Final Results:")
+print(f"  Part 1: {result[0]}")
+print(f"  Part 2: {result[1]}")
