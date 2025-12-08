@@ -1,84 +1,99 @@
 import math
+import numpy as np
+import networkx as nx
+from itertools import combinations
 
 
-class UnionFind:
-    def __init__(self, n):
-        self.parent = list(range(n))
-        self.rank = [0] * n
-        self.size = [1] * n
-
-    def find(self, x):
-        while self.parent[x] != x:
-            self.parent[x] = self.parent[self.parent[x]]
-            x = self.parent[x]
-        return x
-
-    def union(self, x, y):
-        root_x = self.find(x)
-        root_y = self.find(y)
-
-        if root_x == root_y:
-            return False
-
-        if self.rank[root_x] < self.rank[root_y]:
-            self.parent[root_x] = root_y
-            self.size[root_y] += self.size[root_x]
-        elif self.rank[root_x] > self.rank[root_y]:
-            self.parent[root_y] = root_x
-            self.size[root_x] += self.size[root_y]
-        else:
-            self.parent[root_y] = root_x
-            self.size[root_x] += self.size[root_y]
-            self.rank[root_x] += 1
-
-        return True
-
-
-def main():
-    # Read input
+def solve():
+    # Read input from file
     with open("day8_input.txt", "r") as f:
-        coords = [tuple(map(int, line.strip().split(',')))
-                  for line in f if line.strip()]
+        lines = f.readlines()
 
-    n = len(coords)
+    # Parse coordinates
+    input_data = []
+    for line in lines:
+        line = line.strip()
+        if line:
+            x, y, z = map(int, line.split(','))
+            input_data.append([x, y, z])
 
-    # Generate and sort edges by squared distance
-    edges = []
+    input_data = np.array(input_data)
+    n = len(input_data)
+
+    # Part 1 ----
+    print("Calculating distances...")
+
+    # Calculate all pairwise distances
+    distances = np.zeros((n, n))
     for i in range(n):
-        xi, yi, zi = coords[i]
         for j in range(i + 1, n):
-            xj, yj, zj = coords[j]
-            dist_sq = (xi - xj) ** 2 + (yi - yj) ** 2 + (zi - zj) ** 2
-            edges.append((dist_sq, i, j))
+            dist = math.sqrt(((input_data[i] - input_data[j]) ** 2).sum())
+            distances[i, j] = dist
+            distances[j, i] = dist
 
-    edges.sort(key=lambda x: x[0])
+    # Set diagonal to infinity
+    np.fill_diagonal(distances, np.inf)
 
-    # Union-Find
-    uf = UnionFind(n)
-    connections = 0
-
-    for _, i, j in edges:
-        if uf.union(i, j):
-            connections += 1
-            if connections == 1000:
-                break
-
-    # Get component sizes
-    comp_sizes = {}
+    # Get all pairs (upper triangle)
+    pairs = []
+    dist_list = []
     for i in range(n):
-        root = uf.find(i)
-        comp_sizes[root] = comp_sizes.get(root, 0) + 1
+        for j in range(i + 1, n):
+            pairs.append((i, j))
+            dist_list.append(distances[i, j])
 
-    sizes = sorted(comp_sizes.values(), reverse=True)
-    result = sizes[0] * sizes[1] * sizes[2]
+    # Sort pairs by distance
+    sorted_indices = np.argsort(dist_list)
+    ordered_pairs = [pairs[i] for i in sorted_indices]
 
-    # Save result
-    with open("day8_output.txt", "w") as f:
-        f.write(str(result))
+    # Take first 1000 edges
+    edges = ordered_pairs[:1000]
 
-    return result
+    # Create graph
+    G = nx.Graph()
+    G.add_nodes_from(range(n))
+    G.add_edges_from(edges)
+
+    # Get connected components
+    comp = list(nx.connected_components(G))
+    comp_sizes = [len(c) for c in comp]
+    comp_sizes.sort(reverse=True)
+
+    solution1 = comp_sizes[0] * comp_sizes[1] * comp_sizes[2]
+    print(f"Part 1 Solution: {solution1}")
+
+    # Part 2 ----
+    print("\nStarting Part 2...")
+
+    i = 1001
+    edges = ordered_pairs[:i]
+    G = nx.Graph()
+    G.add_nodes_from(range(n))
+    G.add_edges_from(edges)
+    comp = list(nx.connected_components(G))
+    comp_sizes = [len(c) for c in comp]
+
+    while len(set(comp_sizes)) > 1:
+        i += 1
+        edges = ordered_pairs[:i]
+        G = nx.Graph()
+        G.add_nodes_from(range(n))
+        G.add_edges_from(edges)
+        comp = list(nx.connected_components(G))
+        comp_sizes = [len(c) for c in comp]
+
+    # Get the last edge that was added
+    last_edge = ordered_pairs[i - 1]
+    solution2 = input_data[last_edge[0], 0] * input_data[last_edge[1], 0]
+
+    print(f"Part 2 Solution: {solution2}")
+    print(f"Last edge: {last_edge}")
+    print(f"X coordinates: {input_data[last_edge[0], 0]}, {input_data[last_edge[1], 0]}")
+
+    return solution1, solution2
 
 
 if __name__ == "__main__":
-    answer = main()
-    print(f"Answer: {answer}")
+    s1, s2 = solve()
+    print(f"\nPart 1 Answer: {s1}")
+    print(f"Part 2 Answer: {s2}")
