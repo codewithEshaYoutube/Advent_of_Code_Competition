@@ -1,136 +1,194 @@
 import sys
+from collections import defaultdict
 
 
-def read_points(filename):
+def read_input(filename='day9_input.txt'):
     """Read red tile coordinates from file"""
-    with open(filename) as f:
-        return [tuple(map(int, line.strip().split(','))) for line in f if line.strip()]
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    reds = []
+    for line in lines:
+        line = line.strip()
+        if line:
+            x_str, y_str = line.split(',')
+            reds.append((int(x_str), int(y_str)))
+    return reds
 
 
-def is_point_inside(x, y, polygon):
-    """Check if point is inside polygon using ray casting"""
-    n = len(polygon)
-    inside = False
-
-    for i in range(n):
-        x1, y1 = polygon[i]
-        x2, y2 = polygon[(i + 1) % n]
-
-        # Check if edge crosses horizontal line at y
-        if (y1 > y) != (y2 > y):
-            # Calculate x intersection
-            x_intersect = (x2 - x1) * (y - y1) / (y2 - y1) + x1
-            if x_intersect > x:
-                inside = not inside
-
-    return inside
+def collect_horizontal(edges):
+    """Collect horizontal edges grouped by y coordinate"""
+    horizontal = defaultdict(list)
+    for ((x1, y1), (x2, y2)) in edges:
+        if y1 == y2:
+            horizontal[y1].append((min(x1, x2), max(x1, x2)))
+    return horizontal
 
 
-def get_red_green_tiles(polygon):
-    """Get all red and green tiles (boundary + interior)"""
-    # Start with empty set
-    tiles = set()
-    n = len(polygon)
+def build_vertical_edge_map(edges, min_y, max_y):
+    """Build map of vertical edges for each y coordinate"""
+    vertical = defaultdict(list)
+    for ((x1, y1), (x2, y2)) in edges:
+        if x1 != x2:
+            continue
+        # This is a vertical edge
+        ylo = min(y1, y2)
+        yhi = max(y1, y2)
+        # Add to Y values in range [ylo, yhi)
+        for y in range(max(min_y, ylo), min(max_y, yhi - 1) + 1):
+            vertical[y].append(x1)
 
-    # Step 1: Add all boundary tiles
-    for i in range(n):
-        x1, y1 = polygon[i]
-        x2, y2 = polygon[(i + 1) % n]
+    # Sort the x values for each y
+    for y in vertical:
+        vertical[y].sort()
 
-        if x1 == x2:  # Vertical line
-            start_y, end_y = sorted([y1, y2])
-            for y in range(start_y, end_y + 1):
-                tiles.add((x1, y))
-        else:  # Horizontal line
-            start_x, end_x = sorted([x1, x2])
-            for x in range(start_x, end_x + 1):
-                tiles.add((x, y1))
+    return vertical
 
-    # Step 2: Find bounding box
-    xs = [x for x, _ in polygon]
-    ys = [y for _, y in polygon]
-    min_x, max_x = min(xs), max(xs)
-    min_y, max_y = min(ys), max(ys)
 
-    # Step 3: Add interior points
+def merge_segments(segments):
+    """Merge overlapping or adjacent segments"""
+    if not segments:
+        return []
+
+    segments.sort(key=lambda x: x[0])
+    result = [segments[0]]
+
+    for a, b in segments[1:]:
+        c, d = result[-1]
+        if a <= d + 1:
+            # Overlapping or adjacent
+            result[-1] = (c, max(d, b))
+        else:
+            result.append((a, b))
+
+    return result
+
+
+def pair_up(lst):
+    """Convert list [a, b, c, d] to pairs [(a, b), (c, d)]"""
+    result = []
+    i = 0
+    while i + 1 < len(lst):
+        result.append((lst[i], lst[i + 1]))
+        i += 2
+    return result
+
+
+def solve():
+    """Main solving function"""
+    print("Solving Day 9 Part 2...")
+    print("=" * 40)
+
+    try:
+        # Read input from day9_input.txt
+        reds = read_input('day9_input.txt')
+        print(f"✓ Read {len(reds)} red tiles")
+    except FileNotFoundError:
+        print("✗ ERROR: day9_input.txt not found!")
+        print("  Make sure the file is in the current directory")
+        return 0
+
+    if not reds:
+        return 0
+
+    # Create edges between consecutive points (with wrap-around)
+    edges = list(zip(reds, reds[1:] + [reds[0]]))
+
+    # Collect horizontal edges
+    horizontal_list = collect_horizontal(edges)
+    horizontal_map = {}
+    for y, segs in horizontal_list.items():
+        horizontal_map[y] = merge_segments(segs)
+
+    # Get y range
+    all_y = [y for _, y in reds]
+    min_y, max_y = min(all_y), max(all_y)
+    print(f"✓ Y-range: {min_y} to {max_y}")
+
+    # Build vertical edge map
+    vertical_map = build_vertical_edge_map(edges, min_y, max_y)
+    print(f"✓ Processed {len(edges)} edges")
+
+    # Build map of valid x-ranges for each y
+    print("✓ Building valid x-ranges map...")
+    valid_x_ranges_map = {}
     for y in range(min_y, max_y + 1):
-        for x in range(min_x, max_x + 1):
-            if (x, y) not in tiles:
-                if is_point_inside(x, y, polygon):
-                    tiles.add((x, y))
+        horz_segs = horizontal_map.get(y, [])
+        crossings = vertical_map.get(y, [])
+        interior_ranges = pair_up(crossings)
+        all_ranges = horz_segs + interior_ranges
+        valid_x_ranges_map[y] = merge_segments(all_ranges)
 
-    return tiles
+    def valid_rectangle(p1, p2):
+        """Check if rectangle defined by opposite corners p1 and p2 is valid"""
+        x1, y1 = p1
+        x2, y2 = p2
+        xlo = min(x1, x2)
+        xhi = max(x1, x2)
+        ylo = min(y1, y2)
+        yhi = max(y1, y2)
 
+        def valid_for_y(y):
+            ranges = valid_x_ranges_map.get(y, [])
+            return any(a <= xlo and xhi <= b for a, b in ranges)
 
-def find_largest_rectangle(points):
-    """Find largest rectangle with red corners inside red/green region"""
-    # Get all red and green tiles
-    red_green_tiles = get_red_green_tiles(points)
-    red_set = set(points)
+        # Check all corners and all rows
+        if not (valid_for_y(ylo) and valid_for_y(yhi)):
+            return False
 
+        # Check all rows in between
+        for y in range(ylo, yhi + 1):
+            if not valid_for_y(y):
+                return False
+
+        return True
+
+    # Generate candidate rectangles
+    print("✓ Checking all rectangle pairs...")
     max_area = 0
-    n = len(points)
+    n = len(reds)
+    total_pairs = n * (n - 1) // 2
+    checked = 0
 
-    # Check all pairs of red points
     for i in range(n):
-        x1, y1 = points[i]
+        x1, y1 = reds[i]
         for j in range(i + 1, n):
-            x2, y2 = points[j]
+            x2, y2 = reds[j]
+            checked += 1
 
-            # Must be opposite corners
+            # Show progress
+            if checked % 10000 == 0:
+                percent = (checked / total_pairs) * 100
+                print(f"  Progress: {percent:.1f}% ({checked}/{total_pairs})", end='\r')
+
             if x1 == x2 or y1 == y2:
-                continue
+                continue  # Not opposite corners
 
-            # Get rectangle bounds
-            min_x, max_x = sorted([x1, x2])
-            min_y, max_y = sorted([y1, y2])
-
-            # Check if all tiles in rectangle are red/green
-            valid = True
-            for x in range(min_x, max_x + 1):
-                for y in range(min_y, max_y + 1):
-                    if (x, y) not in red_green_tiles:
-                        valid = False
-                        break
-                if not valid:
-                    break
-
-            if valid:
-                width = max_x - min_x + 1
-                height = max_y - min_y + 1
+            if valid_rectangle((x1, y1), (x2, y2)):
+                width = abs(x1 - x2) + 1
+                height = abs(y1 - y2) + 1
                 area = width * height
                 if area > max_area:
                     max_area = area
+
+    print(" " * 50, end='\r')  # Clear progress line
 
     return max_area
 
 
 def main():
-    print("🎬 Day 9: Movie Theater (Part 2)")
-    print("=" * 40)
+    # Run the solver
+    result = solve()
 
-    # Read input
-    try:
-        points = read_points('day9_input.txt')
-        print(f"📊 Read {len(points)} red tiles")
-    except FileNotFoundError:
-        print("❌ ERROR: day9_input.txt not found!")
-        print("   Make sure the file is in the current directory.")
-        return
-
-    # Calculate answer
-    print("⏳ Calculating...")
-    answer = find_largest_rectangle(points)
-
-    # Display result
     print("\n" + "=" * 40)
-    print(f"✅ Answer: {answer}")
+    print(f"✅ Largest rectangle area: {result}")
     print("=" * 40)
 
-    # Save to file
+    # Save to output file
     with open('day9_output.txt', 'w') as f:
-        f.write(str(answer))
-    print(f"💾 Saved to day9_output.txt")
+        f.write(str(result))
+    print(f"💾 Result saved to 'day9_output.txt'")
+
+    return result
 
 
 if __name__ == "__main__":
