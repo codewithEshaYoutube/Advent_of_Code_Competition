@@ -37,7 +37,7 @@ def main():
         with open('day9_input.txt', 'r') as f:
             lines = f.readlines()
     except FileNotFoundError:
-        print("Error: day9_input.txt not found")
+        print("Error: day11_input.txt not found")
         sys.exit(1)
 
     points = []

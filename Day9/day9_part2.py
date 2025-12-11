@@ -2,7 +2,7 @@ import sys
 from collections import defaultdict
 
 
-def read_input(filename='day9_input.txt'):
+def read_input(filename='day11_input.txt'):
     """Read red tile coordinates from file"""
     with open(filename, 'r') as f:
         lines = f.readlines()
@@ -79,11 +79,11 @@ def solve():
     print("=" * 40)
 
     try:
-        # Read input from day9_input.txt
+        # Read input from day11_input.txt
         reds = read_input('day9_input.txt')
         print(f"✓ Read {len(reds)} red tiles")
     except FileNotFoundError:
-        print("✗ ERROR: day9_input.txt not found!")
+        print("✗ ERROR: day11_input.txt not found!")
         print("  Make sure the file is in the current directory")
         return 0
 
