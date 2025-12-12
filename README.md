@@ -6,6 +6,9 @@ Welcome to my **Advent of Code 2025** repository! 🎉
 This repo documents my **daily solutions** for all 25 days of December. I successfully completed the event with **all 24 stars ⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐** — solving each problem in **Python** and **C++**.
 
 ---
+## Organized by
+Advent of Code is an annual programming competition created and organized by Eric Wastl, an independent developer and computer scientist based in the **United States**.
+
 
 ## 📚 Table of Contents
 
