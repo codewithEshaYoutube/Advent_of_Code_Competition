@@ -1,5 +1,5 @@
 Total regions that fit: 0
-Total time: 8.36 seconds
+Total time: 8.17 seconds
 ==================================================
 40x42: 38 37 45 42 54 41 -> no fit
 45x48: 53 49 60 66 43 62 -> no fit
