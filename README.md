@@ -2,6 +2,8 @@
 
 ![Advent of Code 2025](AOC-2025.webp)
 
+
+
 Welcome to my **Advent of Code 2025** repository! 🎉  
 This repo documents my **daily solutions** for all 25 days of December. I successfully completed the event with **all 24 stars ⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐** — solving each problem in **Python** and **C++**.
 
@@ -39,9 +41,10 @@ Advent of Code is an annual programming competition created and organized by Eri
 
 > “You don’t need a CS background—just curiosity and problem-solving.” — *Eric Wastl*
 
----
+---#AOC Completion
+![AoC Completion](completion-aoc.png)
 
-## 🏆 Events & Sponsors
+##  Events & Sponsors
 
 - Sponsored by companies like **Jump Trading**.  
 - Includes:  
@@ -53,9 +56,11 @@ Advent of Code is an annual programming competition created and organized by Eri
 ---
 
 ## 🌟 My Achievements
-
-### 🎯 All 24 Stars Completed  
+### 🏆 AOC Completed | Won 24 Stars 
 I solved every puzzle from December 1–25 and earned all **24 stars**.
+![AoC Completion](completion-aoc.png)
+
+
 
 ### 🌍 International Leaderboard — Top 18  
 ![International Leaderboard](international_scoreboard.png)
